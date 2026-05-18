@@ -469,7 +469,9 @@ function parseTable(match) {
    VIEWER HTML 템플릿 빌더
 ═══════════════════════════════════════════ */
 function buildViewerHtml(specData) {
-  const dataJson = JSON.stringify(specData);
+  const dataJson = JSON.stringify(specData)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
