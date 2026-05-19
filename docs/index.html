@@ -1716,6 +1716,7 @@ function ssRenderPage() {
   if (srcContent) {
     iframe.style.width  = '375px';
     iframe.style.height = '667px';
+    wrapEl.style.width  = '375px';   // 로드 전 collapse 방지
     wrapEl.style.height = '667px';
     iframe.onload = function(){ setTimeout(ssScaleIframe, 50); };
     iframe.srcdoc = srcContent;
