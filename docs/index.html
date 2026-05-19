@@ -890,12 +890,13 @@ mark{background:#fef08a;padding:0 1px;border-radius:2px}
 #specsheet-path-row label{font-weight:600;color:var(--muted);font-size:11px;white-space:nowrap}
 #specsheet-path-row input{border:none;outline:none;font-size:12px;flex:1;background:transparent}
 #specsheet-main{display:flex;flex:1;overflow:hidden}
-#specsheet-screen-area{flex:1;background:#d1d5db;display:block;position:relative;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--border)}
-#specsheet-screen-wrap{position:relative;background:#fff;overflow:hidden;width:100%}
+#specsheet-screen-area{flex:1;background:#d1d5db;display:flex;align-items:flex-start;position:relative;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--border)}
+#specsheet-screen-wrap{position:relative;background:#fff;overflow:hidden;flex:1 0 auto;align-self:flex-start}
 #specsheet-iframe-scaler{position:absolute;top:0;left:0;transform-origin:top left}
 #specsheet-iframe{display:block;border:none}
-#specsheet-badge-overlay{position:absolute;inset:0;pointer-events:auto;z-index:10;cursor:default}
-#specsheet-badge-overlay.add-mode{cursor:crosshair;background:rgba(37,99,235,.05);outline:2px dashed #2563eb}
+#specsheet-badge-overlay{position:absolute;inset:0;pointer-events:none;z-index:10}
+#specsheet-badge-overlay.add-mode{pointer-events:auto;cursor:crosshair;background:rgba(37,99,235,.05);outline:2px dashed #2563eb}
+.ss-badge{pointer-events:auto}
 .ss-desc-item.ss-spotlight{animation:ss-spotlight 1.5s ease-out;border-radius:6px}
 @keyframes ss-spotlight{0%,30%{background:#fef3c7}100%{background:transparent}}
 #ss-info-bar{display:none;align-items:center;gap:8px;padding:4px 12px;background:#f0fdf4;border-bottom:1px solid #86efac;font-size:11px;color:#166534;flex-shrink:0}
@@ -1709,13 +1710,12 @@ function ssRenderPage() {
   const addBtn  = document.getElementById('specsheet-add-badge-btn');
 
   const srcContent = page.snapshotHtml || (page.protoId
-    ? (() => { const p = SPEC_DATA.prototypes.find(x=>x.id===page.protoId); return p ? ssInjectStaticMode(p.content) : null; })()
+    ? (() => { const p = SPEC_DATA.prototypes.find(x=>x.id===page.protoId); return p ? ssInjectNavigator(p.content) : null; })()
     : null);
 
   if (srcContent) {
     iframe.style.width  = '375px';
     iframe.style.height = '667px';
-    wrapEl.style.width  = '100%';
     wrapEl.style.height = '667px';
     iframe.onload = function(){ setTimeout(ssScaleIframe, 50); };
     iframe.srcdoc = srcContent;
@@ -1737,13 +1737,23 @@ function ssRenderPage() {
   ssRenderDescs();
 }
 
-/* 프로토타입 정적 렌더링 — 모든 인터랙션 비활성화 */
-function ssInjectStaticMode(html) {
-  const css = \`<style>
-*{pointer-events:none!important;cursor:default!important;user-select:none!important}
-</style>\`;
-  if (html.includes('</head>')) return html.replace('</head>', css+'</head>');
-  return css + html;
+/* 프로토타입 내비게이션 인터셉터 주입 — 다른 화면 링크 클릭 시 뷰어에 알림 */
+function ssInjectNavigator(html) {
+  const script = \`<script>
+(function(){
+  document.addEventListener('click', function(e){
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href || href.charAt(0)==='#' || href.indexOf('javascript')=== 0) return;
+    e.preventDefault();
+    try { window.parent.postMessage({type:'proto-navigate', href: href}, '*'); } catch(ex){}
+  });
+})();
+\${'<'}/script>\`;
+  if (html.includes('</body>')) return html.replace('</body>', script+'</body>');
+  if (html.includes('</html>')) return html.replace('</html>', script+'</html>');
+  return html + script;
 }
 
 /* 라이브 프로토타입 새 탭으로 열기 */
@@ -1778,35 +1788,32 @@ function ssDetectProtoDims(iframe) {
 }
 
 function ssScaleIframe() {
-  const area   = document.getElementById('specsheet-screen-area');
-  const scaler = document.getElementById('specsheet-iframe-scaler');
-  const iframe = document.getElementById('specsheet-iframe');
-  const overlay= document.getElementById('specsheet-badge-overlay');
-  const wrap   = document.getElementById('specsheet-screen-wrap');
-  if (!area || !iframe || !scaler) return;
+  const scaler  = document.getElementById('specsheet-iframe-scaler');
+  const iframe  = document.getElementById('specsheet-iframe');
+  const overlay = document.getElementById('specsheet-badge-overlay');
+  const wrap    = document.getElementById('specsheet-screen-wrap');
+  if (!iframe || !scaler || !wrap) return;
 
-  // 실제 프로토타입 크기 감지
+  // flex:1 로 이미 확장된 wrap의 실제 너비 사용
+  const availW  = Math.max(wrap.clientWidth || wrap.offsetWidth, 100);
+
   const dims   = ssDetectProtoDims(iframe);
   const protoW = dims.w;
   const protoH = dims.h;
 
-  // 너비 100% 채움 — 세로는 스크롤
-  const availW  = Math.max(area.clientWidth, 100);
-  const scale   = availW / protoW;
+  const scale   = availW / protoW;          // 너비 꽉 채움, 세로 스크롤
   const scaledH = Math.round(protoH * scale);
 
-  iframe.style.width  = protoW+'px';
-  iframe.style.height = protoH+'px';
+  iframe.style.width  = protoW + 'px';
+  iframe.style.height = protoH + 'px';
 
-  scaler.style.transform = 'scale('+scale+')';
-  scaler.style.width  = protoW+'px';
-  scaler.style.height = protoH+'px';
+  scaler.style.transform = 'scale(' + scale + ')';
+  scaler.style.width  = protoW + 'px';
+  scaler.style.height = protoH + 'px';
 
-  wrap.style.width  = availW+'px';
-  wrap.style.height = scaledH+'px';
-
-  overlay.style.width  = availW+'px';
-  overlay.style.height = scaledH+'px';
+  // wrap 높이만 JS로 제어 (너비는 flex:1 이 담당)
+  wrap.style.height    = scaledH + 'px';
+  overlay.style.height = scaledH + 'px';
 
   wrap._scale  = scale;
   wrap._protoW = protoW;
@@ -2055,6 +2062,28 @@ document.getElementById('btn-ss-delete-page').addEventListener('click',()=>{
 });
 
 window.addEventListener('resize',()=>{ if(S.currentPane==='specsheet') ssScaleIframe(); });
+
+/* 프로토타입 내부 링크 → 해당 설계서 페이지로 이동 */
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'proto-navigate') return;
+  if (S.currentPane !== 'specsheet') return;
+  ssNavigateToProto(e.data.href);
+});
+
+function ssNavigateToProto(href) {
+  const filename = href.split('/').pop().split('?')[0].split('#')[0];
+  if (!filename) return;
+  const proto = SPEC_DATA.prototypes.find(p =>
+    p.id === filename || p.name === filename ||
+    p.id.endsWith('/' + filename) || p.id.endsWith('\\\\' + filename)
+  );
+  if (!proto) return;
+  const idx = ssPages.findIndex(p => p.protoId === proto.id);
+  if (idx >= 0 && idx !== ssCurrentIdx) {
+    ssCurrentIdx = idx;
+    ssRenderPage();
+  }
+}
 
 /* ═══════════════════════════ BOOKMARKS ════════════════════ */
 function toggleBookmark(docId, sectionId, heading, docName) {
