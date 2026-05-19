@@ -654,8 +654,15 @@ mark{background:#fef08a;padding:0 1px;border-radius:2px}
 #specsheet-iframe{display:block;border:none}
 #specsheet-badge-overlay{position:absolute;inset:0;pointer-events:none;z-index:10}
 #specsheet-badge-overlay.add-mode{pointer-events:auto;cursor:crosshair;background:rgba(37,99,235,.05);outline:2px dashed #2563eb}
-#specsheet-inspector-highlight{position:absolute;pointer-events:none;border:2px solid #2563eb;background:rgba(37,99,235,.08);box-sizing:border-box;display:none;z-index:8;transition:all .05s}
-#specsheet-inspector-tooltip{position:fixed;z-index:9999;background:#1e293b;color:#e2e8f0;font-size:11px;padding:8px 10px;border-radius:6px;pointer-events:none;display:none;max-width:280px;line-height:1.65;font-family:'SFMono-Regular',Consolas,monospace;box-shadow:0 4px 16px rgba(0,0,0,.5);white-space:pre}
+.ss-desc-item.ss-spotlight{animation:ss-spotlight 1.5s ease-out;border-radius:6px}
+@keyframes ss-spotlight{0%,30%{background:#fef3c7}100%{background:transparent}}
+#ss-capture-bar{display:none;align-items:center;gap:8px;padding:6px 12px;background:#fef9c3;border-bottom:1px solid #fde68a;font-size:12px;flex-shrink:0}
+#ss-capture-bar span{font-weight:600;color:#92400e}
+#ss-capture-bar .btn-save-cur{padding:3px 10px;border-radius:4px;border:1px solid #1d4ed8;background:#2563eb;color:#fff;cursor:pointer;font-size:11px;font-weight:600}
+#ss-capture-bar .btn-save-new{padding:3px 10px;border-radius:4px;border:1px solid #93c5fd;background:#fff;color:#2563eb;cursor:pointer;font-size:11px;font-weight:600}
+#ss-capture-bar .btn-dismiss{background:none;border:none;color:var(--muted);font-size:16px;padding:0 4px;cursor:pointer;margin-left:auto;line-height:1}
+#ss-snapshot-bar{display:none;align-items:center;gap:8px;padding:4px 12px;background:#f0fdf4;border-bottom:1px solid #86efac;font-size:11px;color:#166534;flex-shrink:0}
+#ss-snapshot-bar button{background:none;border:none;cursor:pointer;color:#166534;font-size:11px;text-decoration:underline;padding:0}
 .ss-badge{position:absolute;width:26px;height:26px;border-radius:50%;background:#e53e3e;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transform:translate(-50%,-50%);pointer-events:auto;box-shadow:0 2px 6px rgba(0,0,0,.35);user-select:none;border:2px solid #fff}
 .ss-badge:hover{background:#c53030;transform:translate(-50%,-50%) scale(1.15)}
 #specsheet-add-badge-btn{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;border:none;border-radius:20px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;z-index:10;box-shadow:0 2px 8px rgba(37,99,235,.4);white-space:nowrap}
@@ -824,6 +831,18 @@ mark{background:#fef08a;padding:0 1px;border-radius:2px}
         <label>Screen Path</label>
         <input id="ss-screen-path" placeholder="화면 경로 (예: 대시보드 > 메인)">
       </div>
+      <!-- 캡처 알림 바 -->
+      <div id="ss-capture-bar">
+        <span>📸 화면 캡처됨</span>
+        <button class="btn-save-cur" onclick="ssSaveCaptureToCurrentPage()">현재 페이지에 저장</button>
+        <button class="btn-save-new" onclick="ssSaveCaptureAsNewPage()">새 페이지로 추가</button>
+        <button class="btn-dismiss" onclick="ssCloseCaptureBar()" title="닫기">×</button>
+      </div>
+      <!-- 스냅샷 모드 표시 바 -->
+      <div id="ss-snapshot-bar">
+        📸 스냅샷 보기 중 &nbsp;
+        <button onclick="ssClearSnapshot()">🔄 라이브 프로토타입으로 돌아가기</button>
+      </div>
       <!-- 본문 -->
       <div id="specsheet-main">
         <!-- 좌: 화면 영역 -->
@@ -833,9 +852,7 @@ mark{background:#fef08a;padding:0 1px;border-radius:2px}
               <iframe id="specsheet-iframe" width="375" height="667"></iframe>
             </div>
             <div id="specsheet-badge-overlay"></div>
-            <div id="specsheet-inspector-highlight"></div>
           </div>
-          <div id="specsheet-inspector-tooltip"></div>
           <div id="ss-empty-state" style="display:none;color:var(--muted);font-size:14px;text-align:center">
             <div style="font-size:32px;margin-bottom:8px">🖼</div>
             <div>프로토타입을 선택하세요</div>
@@ -1317,6 +1334,7 @@ document.getElementById('comment-import-file').addEventListener('change', e=>{
 let ssPages = [];
 let ssCurrentIdx = 0;
 let ssBadgeMode = false;
+let ssPendingCapture = null;
 
 function ssInit() {
   const saved = LS.get('sv_specsheet', null);
@@ -1420,27 +1438,64 @@ function ssRenderPage() {
   const wrapEl   = document.getElementById('specsheet-screen-wrap');
   const addBtn   = document.getElementById('specsheet-add-badge-btn');
 
+  const snapBar = document.getElementById('ss-snapshot-bar');
   if (page.protoId) {
     const proto = SPEC_DATA.prototypes.find(p=>p.id===page.protoId);
     if (proto) {
-      iframe.srcdoc = ssInjectInspector(proto.content);
+      iframe.onload = ssScaleIframe;
+      if (page.snapshotHtml) {
+        iframe.srcdoc = page.snapshotHtml;
+        if (snapBar) snapBar.style.display = 'flex';
+      } else {
+        iframe.srcdoc = ssInjectClickCapture(proto.content);
+        if (snapBar) snapBar.style.display = 'none';
+      }
       iframe.style.display = 'block';
       wrapEl.style.display = 'block';
       emptyEl.style.display = 'none';
       addBtn.style.display  = 'block';
-      setTimeout(ssScaleIframe, 80);
     }
+  } else if (page.snapshotHtml) {
+    iframe.onload = ssScaleIframe;
+    iframe.srcdoc = page.snapshotHtml;
+    iframe.style.display = 'block';
+    wrapEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+    addBtn.style.display  = 'block';
+    if (snapBar) snapBar.style.display = 'flex';
   } else {
     iframe.srcdoc = '';
     iframe.style.display = 'none';
     wrapEl.style.display  = 'none';
     emptyEl.style.display = 'flex';
     addBtn.style.display  = 'none';
+    if (snapBar) snapBar.style.display = 'none';
   }
 
   ssExitBadgeMode();
   ssRenderBadges();
   ssRenderDescs();
+}
+
+function ssDetectProtoDims(iframe) {
+  let w = 375, h = 667;
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc || !doc.documentElement) return {w, h};
+    // viewport meta 확인 (모바일 여부 판단)
+    const vp = doc.querySelector('meta[name="viewport"]');
+    if (vp && vp.content) {
+      const m = vp.content.match(/width\s*=\s*(\d+)/);
+      if (m) w = parseInt(m[1]);
+      else if (vp.content.includes('device-width')) w = 375;
+    } else {
+      // viewport meta 없음 = PC 레이아웃
+      w = Math.max(doc.documentElement.scrollWidth, 1024);
+    }
+    h = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0, 400);
+    if (h > 4000) h = 4000; // 너무 길면 제한
+  } catch(e) {}
+  return {w, h};
 }
 
 function ssScaleIframe() {
@@ -1455,32 +1510,29 @@ function ssScaleIframe() {
   const availW = Math.max(area.clientWidth  - pad*2, 100);
   const availH = Math.max(area.clientHeight - pad*2 - 48, 100);
 
-  // 현재 iframe 내용의 크기 기준 (기본 모바일 375×667)
-  const protoW = 375, protoH = 667;
-  const scale  = Math.min(availW/protoW, availH/protoH, 1);
+  // 실제 프로토타입 크기 감지
+  const dims   = ssDetectProtoDims(iframe);
+  const protoW = dims.w;
+  const protoH = dims.h;
+
+  const scale   = Math.min(availW/protoW, availH/protoH, 1);
   const scaledW = Math.round(protoW * scale);
   const scaledH = Math.round(protoH * scale);
 
-  // iframe 자체는 원본 크기 유지
-  iframe.width  = protoW;  iframe.height = protoH;
   iframe.style.width  = protoW+'px';
   iframe.style.height = protoH+'px';
 
-  // scaler div를 transform으로 줄임 → wrap이 overflow:hidden으로 클립
   scaler.style.transform = 'scale('+scale+')';
   scaler.style.width  = protoW+'px';
   scaler.style.height = protoH+'px';
 
-  // wrap = 실제 화면에서 보이는 크기로 명시
   wrap.style.width  = scaledW+'px';
   wrap.style.height = scaledH+'px';
 
-  // badge overlay도 같은 크기
   overlay.style.width  = scaledW+'px';
   overlay.style.height = scaledH+'px';
 
-  // scale 값 저장 (inspector에서 좌표 변환에 사용)
-  wrap._scale = scale;
+  wrap._scale  = scale;
   wrap._protoW = protoW;
   wrap._protoH = protoH;
 }
@@ -1490,7 +1542,9 @@ function ssRenderBadges() {
   const overlay = document.getElementById('specsheet-badge-overlay');
   overlay.innerHTML = (page.badges||[]).map(b=>\`
     <div class="ss-badge" style="left:\${b.x}%;top:\${b.y}%"
-         onclick="ssRemoveBadge(\${b.num})" title="\${b.num}번 뱃지 삭제 (클릭)">\${b.num}</div>
+         onclick="ssSpotlightDesc(\${b.num})"
+         ondblclick="event.stopPropagation();ssRemoveBadge(\${b.num})"
+         title="\${b.num}번 — 클릭: 설명 보기 / 더블클릭: 삭제">\${b.num}</div>
   \`).join('');
 }
 
@@ -1568,44 +1622,14 @@ function ssExitBadgeMode() {
   if (addBtn)  { addBtn.classList.remove('active'); addBtn.textContent='＋ 뱃지 추가'; }
 }
 
-/* inspector 스크립트 주입 */
-function ssInjectInspector(html) {
+/* 클릭 캡처 스크립트 주입 */
+function ssInjectClickCapture(html) {
   const script = \`<script>
 (function(){
-  var hl=null;
-  function mkHL(){
-    if(!hl){hl=document.createElement('div');
-      hl.style.cssText='position:fixed;pointer-events:none;z-index:2147483647;box-sizing:border-box;border:2px solid #2563eb;background:rgba(37,99,235,.1);';
-      document.documentElement.appendChild(hl);}
-    return hl;
-  }
-  document.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();},true);
-  document.addEventListener('mousemove',function(e){
-    var el=document.elementFromPoint(e.clientX,e.clientY);
-    if(!el||el===hl)return;
-    var r=el.getBoundingClientRect();
-    var s=window.getComputedStyle(el);
-    mkHL();hl.style.left=r.left+'px';hl.style.top=r.top+'px';
-    hl.style.width=r.width+'px';hl.style.height=r.height+'px';hl.style.display='';
-    var tag=el.tagName.toLowerCase();
-    var cls=[].slice.call(el.classList).slice(0,3).join('.');
-    var name=tag+(el.id?'#'+el.id:'')+(cls?'.'+cls:'');
-    window.parent.postMessage({type:'spec-inspect',
-      name:name,
-      rect:{w:Math.round(r.width),h:Math.round(r.height),x:Math.round(r.left),y:Math.round(r.top)},
-      styles:{
-        fontSize:s.fontSize,fontWeight:s.fontWeight,
-        color:s.color,bg:s.backgroundColor,
-        padding:s.padding,margin:s.margin,
-        borderRadius:s.borderRadius,display:s.display,
-        lineHeight:s.lineHeight,opacity:s.opacity
-      },
-      mx:e.clientX,my:e.clientY
-    },'*');
-  });
-  document.addEventListener('mouseleave',function(){
-    if(hl)hl.style.display='none';
-    window.parent.postMessage({type:'spec-inspect-out'},'*');
+  document.addEventListener('click', function(){
+    setTimeout(function(){
+      try { window.parent.postMessage({type:'spec-click', html:document.documentElement.outerHTML}, '*'); } catch(ex){}
+    }, 250);
   });
 })();
 \${'<'}/script>\`;
@@ -1614,67 +1638,61 @@ function ssInjectInspector(html) {
   return html + script;
 }
 
-/* inspector postMessage 수신 */
+/* 클릭 캡처 postMessage 수신 */
 window.addEventListener('message', function(e) {
-  if (!e.data || typeof e.data !== 'object') return;
+  if (!e.data || e.data.type !== 'spec-click') return;
   if (S.currentPane !== 'specsheet') return;
-
-  const hl  = document.getElementById('specsheet-inspector-highlight');
-  const tip = document.getElementById('specsheet-inspector-tooltip');
-  const wrap= document.getElementById('specsheet-screen-wrap');
-  if (!hl || !tip || !wrap) return;
-
-  if (e.data.type === 'spec-inspect-out') {
-    hl.style.display  = 'none';
-    tip.style.display = 'none';
-    return;
-  }
-  if (e.data.type !== 'spec-inspect') return;
-
-  // badge-add 모드일 때는 inspector 비활성
-  if (ssBadgeMode) { hl.style.display='none'; tip.style.display='none'; return; }
-
-  const scale = wrap._scale || 1;
-  const d = e.data;
-  const r = d.rect;
-
-  // 하이라이트 (wrap 내 좌표로 변환)
-  hl.style.display = 'block';
-  hl.style.left    = Math.round(r.x * scale) + 'px';
-  hl.style.top     = Math.round(r.y * scale) + 'px';
-  hl.style.width   = Math.round(r.w * scale) + 'px';
-  hl.style.height  = Math.round(r.h * scale) + 'px';
-
-  // 툴팁 내용
-  const st = d.styles;
-  function fmtColor(c) {
-    if (!c || c==='rgba(0, 0, 0, 0)' || c==='transparent') return '—';
-    return c;
-  }
-  const lines = [
-    '▶ ' + d.name,
-    '↔ ' + r.w + 'px  ↕ ' + r.h + 'px',
-    'font: ' + st.fontSize + ' / ' + st.fontWeight,
-    'color: ' + fmtColor(st.color),
-    'bg: ' + fmtColor(st.bg),
-  ];
-  if (st.padding && st.padding !== '0px') lines.push('pad: ' + st.padding);
-  if (st.margin  && st.margin  !== '0px') lines.push('mar: ' + st.margin);
-  if (st.borderRadius && st.borderRadius !== '0px') lines.push('radius: ' + st.borderRadius);
-  if (st.display) lines.push('display: ' + st.display);
-  tip.textContent = lines.join('\\n');
-
-  // 툴팁 위치 (마우스 근처, 화면 밖 방지)
-  const wRect = wrap.getBoundingClientRect();
-  let tx = wRect.left + Math.round(d.mx * scale) + 16;
-  let ty = wRect.top  + Math.round(d.my * scale) + 16;
-  tip.style.display = 'block';
-  const tw = tip.offsetWidth, th = tip.offsetHeight;
-  if (tx + tw + 8 > window.innerWidth)  tx = tx - tw - 32;
-  if (ty + th + 8 > window.innerHeight) ty = ty - th - 8;
-  tip.style.left = tx + 'px';
-  tip.style.top  = ty + 'px';
+  if (ssBadgeMode) return; // 뱃지 추가 모드 중에는 무시
+  ssPendingCapture = e.data.html;
+  ssShowCaptureBar(true);
 });
+
+function ssShowCaptureBar(show) {
+  const bar = document.getElementById('ss-capture-bar');
+  if (bar) bar.style.display = show ? 'flex' : 'none';
+}
+function ssCloseCaptureBar() {
+  ssPendingCapture = null;
+  ssShowCaptureBar(false);
+}
+function ssSaveCaptureToCurrentPage() {
+  if (!ssPendingCapture) return;
+  ssPages[ssCurrentIdx].snapshotHtml = ssPendingCapture;
+  ssSave(); ssCloseCaptureBar(); ssRenderPage();
+}
+function ssSaveCaptureAsNewPage() {
+  if (!ssPendingCapture) return;
+  const src = ssPages[ssCurrentIdx];
+  ssPages.push({
+    id: 'ss-'+Date.now(),
+    protoId: src.protoId||null,
+    snapshotHtml: ssPendingCapture,
+    screenId: src.screenId||'',
+    pageTitle: (src.pageTitle||'페이지') + ' (캡처)',
+    screenPath: src.screenPath||'',
+    uiId:'', author:'',
+    date: new Date().toISOString().slice(0,10).replace(/-/g,'.'),
+    descriptions:[], checkPoint:'', badges:[]
+  });
+  ssCurrentIdx = ssPages.length - 1;
+  ssSave(); ssCloseCaptureBar(); ssRenderPage();
+}
+function ssClearSnapshot() {
+  ssPages[ssCurrentIdx].snapshotHtml = null;
+  ssSave(); ssRenderPage();
+}
+function ssSpotlightDesc(badgeNum) {
+  const page = ssPages[ssCurrentIdx];
+  const desc = page.descriptions.find(d => d.badgeId === badgeNum);
+  if (!desc) return;
+  const el = document.getElementById('ss-desc-' + desc.id);
+  if (!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  el.classList.remove('ss-spotlight');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('ss-spotlight');
+  setTimeout(() => el.classList.remove('ss-spotlight'), 1600);
+}
 
 function openSpecSheet() {
   if (!ssPages.length) ssInit();
@@ -1727,6 +1745,7 @@ document.getElementById('ss-checkpoint').addEventListener('input',()=>{
 document.getElementById('ss-proto-select').addEventListener('change',e=>{
   const page=ssPages[ssCurrentIdx];
   page.protoId = e.target.value || null;
+  page.snapshotHtml = null; // 프로토 변경 시 기존 스냅샷 초기화
   if (page.protoId) {
     const proto = SPEC_DATA.prototypes.find(p=>p.id===page.protoId);
     if (proto) {
