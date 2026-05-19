@@ -890,8 +890,8 @@ mark{background:#fef08a;padding:0 1px;border-radius:2px}
 #specsheet-path-row label{font-weight:600;color:var(--muted);font-size:11px;white-space:nowrap}
 #specsheet-path-row input{border:none;outline:none;font-size:12px;flex:1;background:transparent}
 #specsheet-main{display:flex;flex:1;overflow:hidden}
-#specsheet-screen-area{flex:1;background:#d1d5db;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border-right:1px solid var(--border)}
-#specsheet-screen-wrap{position:relative;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.2);overflow:hidden;flex-shrink:0}
+#specsheet-screen-area{flex:1;background:#d1d5db;display:block;position:relative;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--border)}
+#specsheet-screen-wrap{position:relative;background:#fff;overflow:hidden;width:100%}
 #specsheet-iframe-scaler{position:absolute;top:0;left:0;transform-origin:top left}
 #specsheet-iframe{display:block;border:none}
 #specsheet-badge-overlay{position:absolute;inset:0;pointer-events:auto;z-index:10;cursor:default}
@@ -1715,7 +1715,7 @@ function ssRenderPage() {
   if (srcContent) {
     iframe.style.width  = '375px';
     iframe.style.height = '667px';
-    wrapEl.style.width  = '375px';
+    wrapEl.style.width  = '100%';
     wrapEl.style.height = '667px';
     iframe.onload = function(){ setTimeout(ssScaleIframe, 50); };
     iframe.srcdoc = srcContent;
@@ -1785,17 +1785,14 @@ function ssScaleIframe() {
   const wrap   = document.getElementById('specsheet-screen-wrap');
   if (!area || !iframe || !scaler) return;
 
-  const pad    = 40;
-  const availW = Math.max(area.clientWidth  - pad*2, 100);
-  const availH = Math.max(area.clientHeight - pad*2 - 48, 100);
-
   // 실제 프로토타입 크기 감지
   const dims   = ssDetectProtoDims(iframe);
   const protoW = dims.w;
   const protoH = dims.h;
 
-  const scale   = Math.min(availW/protoW, availH/protoH, 1);
-  const scaledW = Math.round(protoW * scale);
+  // 너비 100% 채움 — 세로는 스크롤
+  const availW  = Math.max(area.clientWidth, 100);
+  const scale   = availW / protoW;
   const scaledH = Math.round(protoH * scale);
 
   iframe.style.width  = protoW+'px';
@@ -1805,10 +1802,10 @@ function ssScaleIframe() {
   scaler.style.width  = protoW+'px';
   scaler.style.height = protoH+'px';
 
-  wrap.style.width  = scaledW+'px';
+  wrap.style.width  = availW+'px';
   wrap.style.height = scaledH+'px';
 
-  overlay.style.width  = scaledW+'px';
+  overlay.style.width  = availW+'px';
   overlay.style.height = scaledH+'px';
 
   wrap._scale  = scale;
