@@ -490,6 +490,56 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes fadeScaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 
+/* ============ 알림 화면 스타일 ============ */
+.notif-row{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:background .1s;
+  position:relative;
+}
+.notif-row:active{background:var(--surface-hover);}
+.notif-row.unread{background:#fafcff;}
+.notif-icon-wrap{
+  width:40px;height:40px;border-radius:11px;
+  display:grid;place-items:center;flex-shrink:0;
+}
+.notif-body{flex:1;min-width:0;}
+.notif-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-0.01em;line-height:1.35;}
+.notif-desc{font-size:12px;color:var(--text-secondary);margin-top:3px;line-height:1.5;}
+.notif-time{font-size:11px;color:var(--text-tertiary);margin-top:5px;}
+.notif-unread-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--accent);
+  flex-shrink:0;margin-top:4px;
+}
+
+/* ============ 알림 설정 스타일 ============ */
+.notif-setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;
+}
+.notif-setting-label{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.01em;}
+.notif-setting-sub{font-size:12px;color:var(--text-tertiary);margin-top:2px;}
+
+/* 토글 스위치 */
+.ns-toggle{
+  width:46px;height:27px;border-radius:13.5px;
+  background:var(--border-strong);
+  position:relative;cursor:pointer;
+  transition:background .2s;flex-shrink:0;
+}
+.ns-toggle.active{background:var(--accent);}
+.ns-knob{
+  position:absolute;top:3px;left:3px;
+  width:21px;height:21px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);
+  transition:transform .2s;
+}
+.ns-toggle.active .ns-knob{transform:translateX(19px);}
+
+
 /* ============ v4.1 NEW COMPONENTS ============ */
 
 /* Login */
@@ -1131,9 +1181,15 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto
             <h1>게시판</h1>
             <div class="sub" id="boardFilterLabel">우리 회사 소식과 자유로운 대화</div>
           </div>
-          <button id="boardFilterBtn" onclick="openBoardFilterSheet()" style="width:36px;height:36px;border-radius:10px;background:#ffffff;border:1px solid var(--border);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-sm);flex-shrink:0;margin-top:2px">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-          </button>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px;flex-shrink:0">
+            <button id="boardFilterBtn" onclick="openBoardFilterSheet()" style="width:36px;height:36px;border-radius:10px;background:#ffffff;border:1px solid var(--border);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-sm)">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            </button>
+            <button id="boardNotifBtn" onclick="showScreen('notifications')" style="width:36px;height:36px;border-radius:10px;background:#ffffff;border:1px solid var(--border);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-sm);position:relative">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span id="notifBadge" style="position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:1.5px solid #fff;display:block"></span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1617,6 +1673,10 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto
       <div class="menu-group">
         <div class="menu-row" onclick="showScreen('myinfo')">
           <span class="label">내 정보</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="menu-row" onclick="showScreen('notif-settings')">
+          <span class="label">알림 설정</span>
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
         <div class="menu-row" onclick="goPostList('인사 FAQ', true)">
@@ -3529,6 +3589,253 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto
     </div>
 
 
+    <!-- ============ 알림 화면 ============ -->
+    <div class="screen" data-screen="notifications">
+      <div class="topbar with-back">
+        <div class="back" onclick="goBack()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="title">알림</div>
+        <div onclick="markAllNotifRead()" style="font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;padding:6px 10px;border-radius:8px;background:var(--accent-light)">모두 읽음</div>
+      </div>
+
+      <div id="notifList" style="padding-bottom:80px">
+
+        <!-- 오늘 섹션 -->
+        <div class="date-section" style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--text-tertiary);letter-spacing:0.04em;text-transform:uppercase;background:var(--bg)">오늘</div>
+
+        <!-- 미읽음 알림 -->
+        <div class="notif-row unread" onclick="handleNotifClick('cert-types')">
+          <div class="notif-icon-wrap" style="background:#eff5fa;border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">증명서 발급 완료</div>
+            <div class="notif-desc">재직증명서 발급이 완료되었습니다. 확인해 보세요.</div>
+            <div class="notif-time">방금 전</div>
+          </div>
+          <div class="notif-unread-dot"></div>
+        </div>
+
+        <div class="notif-row unread" onclick="handleNotifClick('leave-approval')">
+          <div class="notif-icon-wrap" style="background:#f0fdf4;border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg>
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">연차 승인</div>
+            <div class="notif-desc">5월 4일(월) 휴가신청서가 승인되었습니다.</div>
+            <div class="notif-time">30분 전</div>
+          </div>
+          <div class="notif-unread-dot"></div>
+        </div>
+
+        <!-- 이전 섹션 -->
+        <div class="date-section" style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--text-tertiary);letter-spacing:0.04em;text-transform:uppercase;background:var(--bg)">어제</div>
+
+        <div class="notif-row" onclick="handleNotifClick('cert-types')">
+          <div class="notif-icon-wrap" style="background:#fef2f2;border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">증명서 반려</div>
+            <div class="notif-desc">기타증명서 신청이 반려되었습니다. 사유를 확인해 주세요.</div>
+            <div class="notif-time">2026.05.19 14:22</div>
+          </div>
+        </div>
+
+        <div class="notif-row" onclick="handleNotifClick('board')">
+          <div class="notif-icon-wrap" style="background:var(--accent-light);border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">새 공지사항</div>
+            <div class="notif-desc">2026년 5월 정기 회의 일정 및 안건이 게시되었습니다.</div>
+            <div class="notif-time">2026.05.19 09:05</div>
+          </div>
+        </div>
+
+        <div class="date-section" style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--text-tertiary);letter-spacing:0.04em;text-transform:uppercase;background:var(--bg)">5월 18일 (일)</div>
+
+        <div class="notif-row" onclick="handleNotifClick('leave-approval')">
+          <div class="notif-icon-wrap" style="background:var(--warning-bg);border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="12" y1="11" x2="12" y2="15"/></svg>
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">연차 신청 접수</div>
+            <div class="notif-desc">휴가신청서가 결재자에게 전달되었습니다.</div>
+            <div class="notif-time">2026.05.18 17:44</div>
+          </div>
+        </div>
+
+        <div class="notif-row" style="border-bottom:none" onclick="handleNotifClick('cert-types')">
+          <div class="notif-icon-wrap" style="background:#f0fdf4;border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">증명서 발급 완료</div>
+            <div class="notif-desc">경력증명서 발급이 완료되었습니다.</div>
+            <div class="notif-time">2026.05.18 10:30</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ 알림 설정 화면 ============ -->
+    <div class="screen" data-screen="notif-settings">
+      <div class="topbar with-back">
+        <div class="back" onclick="goBack()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="title">알림 설정</div>
+      </div>
+
+      <div style="padding-bottom:80px">
+
+        <!-- 푸시 알림 전체 -->
+        <div style="background:var(--surface);margin-top:0;border-bottom:1px solid var(--border)">
+          <div style="padding:16px 20px 10px;font-size:11px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em">앱 푸시 알림</div>
+          <div class="notif-setting-row">
+            <div>
+              <div class="notif-setting-label">푸시 알림 받기</div>
+              <div class="notif-setting-sub">MY인사 앱의 모든 푸시 알림을 받습니다</div>
+            </div>
+            <div class="ns-toggle active" id="togglePushAll" onclick="toggleNotifSwitch('togglePushAll')">
+              <div class="ns-knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 항목별 알림 -->
+        <div style="background:var(--surface);margin-top:8px;border-bottom:1px solid var(--border)" id="notifCategories">
+          <div style="padding:16px 20px 10px;font-size:11px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em">알림 항목</div>
+
+          <div class="notif-setting-row" style="border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:34px;height:34px;border-radius:9px;background:var(--accent-light);display:grid;place-items:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg>
+              </div>
+              <div>
+                <div class="notif-setting-label">연차 / 휴가</div>
+                <div class="notif-setting-sub">신청·승인·반려 알림</div>
+              </div>
+            </div>
+            <div class="ns-toggle active" id="toggleLeave" onclick="toggleNotifSwitch('toggleLeave')">
+              <div class="ns-knob"></div>
+            </div>
+          </div>
+
+          <div class="notif-setting-row" style="border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:34px;height:34px;border-radius:9px;background:#f0fdf4;display:grid;place-items:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div>
+                <div class="notif-setting-label">증명서</div>
+                <div class="notif-setting-sub">발급완료·반려 알림</div>
+              </div>
+            </div>
+            <div class="ns-toggle active" id="toggleCert" onclick="toggleNotifSwitch('toggleCert')">
+              <div class="ns-knob"></div>
+            </div>
+          </div>
+
+          <div class="notif-setting-row" style="border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:34px;height:34px;border-radius:9px;background:var(--warning-bg);display:grid;place-items:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+              <div>
+                <div class="notif-setting-label">영수증 / 결의서</div>
+                <div class="notif-setting-sub">등록·승인·반려 알림</div>
+              </div>
+            </div>
+            <div class="ns-toggle active" id="toggleExpense" onclick="toggleNotifSwitch('toggleExpense')">
+              <div class="ns-knob"></div>
+            </div>
+          </div>
+
+          <div class="notif-setting-row">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:34px;height:34px;border-radius:9px;background:#eff6ff;display:grid;place-items:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </div>
+              <div>
+                <div class="notif-setting-label">게시판 / 공지</div>
+                <div class="notif-setting-sub">새 공지사항 알림</div>
+              </div>
+            </div>
+            <div class="ns-toggle active" id="toggleBoard" onclick="toggleNotifSwitch('toggleBoard')">
+              <div class="ns-knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 방해금지 모드 -->
+        <div style="background:var(--surface);margin-top:8px">
+          <div style="padding:16px 20px 10px;font-size:11px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em">방해금지 모드</div>
+
+          <div class="notif-setting-row" style="border-bottom:1px solid var(--border)">
+            <div>
+              <div class="notif-setting-label">방해금지 모드</div>
+              <div class="notif-setting-sub">설정한 시간 동안 알림을 받지 않습니다</div>
+            </div>
+            <div class="ns-toggle" id="toggleDND" onclick="toggleNotifSwitch('toggleDND');toggleDNDTime()">
+              <div class="ns-knob"></div>
+            </div>
+          </div>
+
+          <div id="dndTimeSection" style="display:none;padding:0 20px 16px">
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;margin-top:10px">
+              <div style="padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--text)">시작 시간</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <select id="dndStartHour" style="border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);font-family:inherit;outline:none;cursor:pointer">
+                    <option value="22" selected>22</option>
+                    <option value="23">23</option>
+                    <option value="0">00</option>
+                    <option value="21">21</option>
+                    <option value="20">20</option>
+                  </select>
+                  <span style="font-size:14px;font-weight:700;color:var(--text-secondary)">:</span>
+                  <select style="border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);font-family:inherit;outline:none;cursor:pointer">
+                    <option>00</option>
+                    <option>30</option>
+                  </select>
+                </div>
+              </div>
+              <div style="padding:13px 16px;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--text)">종료 시간</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <select style="border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);font-family:inherit;outline:none;cursor:pointer">
+                    <option value="7" selected>07</option>
+                    <option value="8">08</option>
+                    <option value="9">09</option>
+                    <option value="6">06</option>
+                  </select>
+                  <span style="font-size:14px;font-weight:700;color:var(--text-secondary)">:</span>
+                  <select style="border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);font-family:inherit;outline:none;cursor:pointer">
+                    <option>00</option>
+                    <option>30</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;display:flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              매일 반복 적용됩니다
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
     <div class="screen active" data-screen="login" style="padding-bottom:0">
       <div class="login-screen">
         <!-- 로고 영역 -->
@@ -3764,11 +4071,6 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto
       <div style="padding:16px 20px">
         <label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:6px">수신 이메일 <span style="color:var(--danger)">*</span></label>
         <input id="emailSheetInput" class="login-input" style="margin-bottom:0" placeholder="이메일 주소 입력" value="gd.hong@company.com"/>
-        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-          <div onclick="document.getElementById('emailSheetInput').value='gd.hong@company.com'" style="padding:5px 10px;border-radius:16px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;color:var(--text-secondary)">내 이메일</div>
-          <div onclick="document.getElementById('emailSheetInput').value='hr@company.com'" style="padding:5px 10px;border-radius:16px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;color:var(--text-secondary)">hr@company.com</div>
-          <div onclick="document.getElementById('emailSheetInput').value='finance@company.com'" style="padding:5px 10px;border-radius:16px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;color:var(--text-secondary)">finance@company.com</div>
-        </div>
         <div style="margin-top:12px;padding:10px 12px;background:#f9f9fc;border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--text-secondary);line-height:1.6">
           <div style="font-weight:600;color:var(--text);margin-bottom:2px">첨부 파일</div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -5578,6 +5880,43 @@ function showToast(msg) {
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
 }
+
+/* ===== 알림 관련 함수 ===== */
+function handleNotifClick(screen) {
+  // 해당 알림 행 읽음 처리 (클릭한 행)
+  const rows = document.querySelectorAll('.notif-row.unread');
+  // 간단 처리: 해당 화면으로 이동
+  showScreen(screen);
+}
+
+function markAllNotifRead() {
+  document.querySelectorAll('.notif-row.unread').forEach(r => r.classList.remove('unread'));
+  document.querySelectorAll('.notif-unread-dot').forEach(d => d.remove());
+  const badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = 'none';
+  showToast('모든 알림을 읽음 처리했습니다');
+}
+
+function toggleNotifSwitch(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('active');
+  // 전체 알림 끄면 항목별 알림도 dim
+  if (id === 'togglePushAll') {
+    const cats = document.getElementById('notifCategories');
+    if (cats) cats.style.opacity = el.classList.contains('active') ? '1' : '0.45';
+    const dndSection = document.getElementById('notifCategories');
+  }
+}
+
+function toggleDNDTime() {
+  const toggle = document.getElementById('toggleDND');
+  const section = document.getElementById('dndTimeSection');
+  if (!section) return;
+  const isActive = toggle && toggle.classList.contains('active');
+  section.style.display = isActive ? 'block' : 'none';
+}
+
 
 document.addEventListener('DOMContentLoaded', function() {
   initAllCalDrags();
