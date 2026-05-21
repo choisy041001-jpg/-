@@ -462,6 +462,8 @@ function simpleMarkdown(md) {
   md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   let html = md
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // MD 소스 내 인라인 HTML 태그 복원 (<br> 등 셀 내 줄바꿈)
+    .replace(/&lt;br\s*\/?&gt;/gi,'<br>')
     // 코드블록
     .replace(/```(\w*)\n([\s\S]*?)```/g, (_,lang,code)=>`<pre><code class="language-${lang}">${code}</code></pre>`)
     // 인라인 코드
@@ -473,10 +475,11 @@ function simpleMarkdown(md) {
     .replace(/^#{3}\s+(.*)/gm, (_,t)=>headingHtml(3,t))
     .replace(/^#{2}\s+(.*)/gm, (_,t)=>headingHtml(2,t))
     .replace(/^#{1}\s+(.*)/gm, (_,t)=>headingHtml(1,t))
-    // 굵게/이탤릭
+    // 굵게/이탤릭/취소선
     .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/~~(.+?)~~/g,'<del>$1</del>')
     // 링크/이미지
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1">')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>')
