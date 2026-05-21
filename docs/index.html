@@ -458,6 +458,8 @@ function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 
 /* ── 간이 MD→HTML 변환기 ── */
 function simpleMarkdown(md) {
+  // Windows \r\n → \n 정규화 (테이블 정규식이 \n 기준)
+  md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   let html = md
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     // 코드블록
